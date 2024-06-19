@@ -5,7 +5,7 @@ import depthai as dai
 import numpy as np
 import argparse
 import time
-from utils.utils import draw
+from utils.utils import draw, track_face
 from utils.priorbox import PriorBox
 import blobconverter
 from utils.utils import arduino
@@ -107,30 +107,33 @@ with dai.Device(pipeline) as device:
         if dets.shape[0] > 0:
             if dets.ndim == 1:
                 dets = np.expand_dims(dets, 0)
-
-            img_res = draw(
-                img=frame,
-                bboxes=dets[:, :4],
-                landmarks=np.reshape(dets[:, 4:14], (-1, 5, 2)),
-                scores=dets[:, -1]
-            )
-      
-
+                track_face(
+                    img=frame,
+                    bboxes=dets[:, :4],
+                    landmarks=np.reshape(dets[:, 4:14], (-1, 5, 2)),
+                    scores=dets[:, -1])
+                  # img_res = draw(
+            #     img=frame,
+            #     bboxes=dets[:, :4],
+            #     landmarks=np.reshape(dets[:, 4:14], (-1, 5, 2)),
+            #     scores=dets[:, -1]
+            # )
+        
         # show fps
-        color_black, color_white = (0, 0, 0), (255, 255, 255)
-        label_fps = "Fps: {:.2f}".format(fps)
-        (w1, h1), _ = cv2.getTextSize(label_fps, cv2.FONT_HERSHEY_TRIPLEX, 0.4, 1)
-        cv2.rectangle(frame, (0, frame.shape[0] - h1 - 6), (w1 + 2, frame.shape[0]), color_white, -1)
-        cv2.putText(frame, label_fps, (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX,
-                    0.4, color_black)
+        #color_black, color_white = (0, 0, 0), (255, 255, 255)
+        #label_fps = "Fps: {:.2f}".format(fps)
+        #(w1, h1), _ = cv2.getTextSize(label_fps, cv2.FONT_HERSHEY_TRIPLEX, 0.4, 1)
+        #cv2.rectangle(frame, (0, frame.shape[0] - h1 - 6), (w1 + 2, frame.shape[0]), color_white, -1)
+        #cv2.putText(frame, label_fps, (2, frame.shape[0] - 4), cv2.FONT_HERSHEY_TRIPLEX,
+        #            0.4, color_black)
 
-        cv2.imshow("Detections", frame)
-        counter += 1
-        if (time.time() - start_time) > 1:
-            fps = counter / (time.time() - start_time)
+        #cv2.imshow("Detections", frame)
+        # counter += 1
+        # if (time.time() - start_time) > 1:
+        #     fps = counter / (time.time() - start_time)
 
-            counter = 0
-            start_time = time.time()
+        #     counter = 0
+        #     start_time = time.time()
 
         if cv2.waitKey(1) == ord('q'):
             break

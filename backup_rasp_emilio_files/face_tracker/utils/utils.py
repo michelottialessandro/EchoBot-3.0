@@ -32,7 +32,18 @@ def draw(img: np.ndarray, bboxes: np.ndarray, landmarks: np.ndarray, scores: np.
         (h, w) = img.shape[:2] #w:image-width and h:image-height
         cv2.circle(img, (int(w/2), int(h/2)), 2, (255, 255, 255), -1) 
         cv2.circle(img,(int(x_face_centre),int(y_face_centre)),2,(255,255,30),-1)
-        print(calcolo_distanza(w,h,int(x_face_centre),int(y_face_centre)))
+    return img
+
+def track_face(img: np.ndarray, bboxes: np.ndarray, landmarks: np.ndarray, scores: np.ndarray) -> np.ndarray:
+   
+    if bboxes is not None:
+        for idx in range(bboxes.shape[0]):
+            bbox = bboxes[idx].astype(np.int16)
+            x_face_centre=(bbox[0]+(bbox[0]+bbox[2]))/2
+            y_face_centre=(bbox[1]+(bbox[3]+bbox[1]))/2
+        
+        (h, w) = img.shape[:2] #w:image-width and h:image-height
+
         delta_x=(w/2)-x_face_centre
         delta_y=(h/2)-y_face_centre
         
