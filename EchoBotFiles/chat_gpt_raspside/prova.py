@@ -68,7 +68,7 @@ def main():
         keyword_paths = args.keyword_paths
 
     if args.sensitivities is None:
-        args.sensitivities = [0.5] * len(keyword_paths)
+        args.sensitivities = [0.7] * len(keyword_paths)
 
     if len(keyword_paths) != len(args.sensitivities):
         raise ValueError('Number of keywords does not match the number of sensitivities.')
@@ -129,13 +129,14 @@ def main():
         pcm = recorder.read()
         result = porcupine.process(pcm)
 
-        if result <= 0:
-            print("nothing detected")
-            print(result)
+        if result < 0:
+ #           print("nothing detected")
+#            print(result)
+             pass
         elif result ==1:
             print("hey computer")
             print(result)
-        elif result==2:
+        else:
             print("echo bot")
             print(result)
             
