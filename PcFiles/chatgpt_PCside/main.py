@@ -10,7 +10,7 @@ import multiprocessing
 from functools import partial
 import json
 import numpy as np
-
+import base64
 def tronca_all_ultimo_punto(testo):
     ultimo_punto = testo.rfind('.')
     if ultimo_punto == -1:
@@ -49,10 +49,18 @@ def check_prompt(prompt):
         return ""
 
 async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
+    
     try:
-        encoded_audio = await websocket.recv()
+        data=await websocket.recv()
+        data=json.loads(data)
+        is_echo=data["is_echo"]
+        encoded_audio = data["data"]
+        print(type(encoded_audio))
+
+        decoded_audio = base64.b64decode(encoded_audio.encode('utf-8'))
+
         with open("karpus.wav","wb") as f:
-            f.write(encoded_audio)
+            f.write(decoded_audio)
             print("saved")
             f.close()
         
@@ -60,10 +68,11 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
         result=result_dict["text"]
 
         result=remove_quotes(result,False) # remove from transcription quotes and duble quotes
-       
-        response=check_prompt(result) # check if time is asked
+        if(is_echo):
+            response=check_prompt(result) # check if time is asked
+            #### aggiungere la parte dello zero shot classification
 
-        if(response==""): # se la risposta e' nulla significa che non e' stata fatta una richiesta specifica e la domanda va passata a llama
+        else: # se is_echo e' nulla significa che non e' stata fatta una richiesta specifica e la domanda va passata a llama
             print("questo e' il risultato "+result)
             cache_json=np.empty(1000000,dtype=dict)
             counter=0
@@ -92,9 +101,9 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
                 file.write(json.dumps({"input":result,"output":response,"lan":result_dict["language"]}) + '\n')
                 file.close()
             await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
-        else:
-            print("processato")
-            await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+        # else:
+        #     print("processato")
+        #     await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
 
 
     except websockets.exceptions.ConnectionClosedError:
@@ -106,7 +115,7 @@ def main_server_transcribe(trascript_queue,brain_queue):
     server_address = "0.0.0.0"
     server_port = 8700
 
-    handle_audio_with_params = partial(handle_audio, trascript_queue=trascript_queue,brain_queue=brain_queue, whisper_model=whisper_model)
+    handle_audio_with_params = partial(handle_audio,trascript_queue=trascript_queue,brain_queue=brain_queue, whisper_model=whisper_model)
 
     start_server = websockets.serve(handle_audio_with_params, server_address, server_port,)
 
