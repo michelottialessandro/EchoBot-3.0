@@ -12,7 +12,7 @@ import json
 import numpy as np
 import base64
 from transformers import pipeline
-
+from wordTonumber import create_expression
 classifier = pipeline("zero-shot-classification",
                       model="facebook/bart-large-mnli")
 
@@ -88,7 +88,12 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
                 await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
             elif(class_=="calculation"):
                 print("performing calculation")
-                await websocket.send(json.dumps({"text":"performing calculation", "lan":result_dict["language"]}))
+                try:
+                    result=create_expression(result)
+                    await websocket.send(json.dumps({"text":result, "lan":result_dict["language"]}))
+                except:
+                    await websocket.send(json.dumps({"text":"There has been an  server internal error during calculation", "lan":"en"}))
+
             elif(class_=="play a game"):
                 print("lets play")
                 await websocket.send(json.dumps({"text":"lets play", "lan":result_dict["language"]}))
