@@ -11,6 +11,13 @@ from functools import partial
 import json
 import numpy as np
 import base64
+from transformers import pipeline
+
+classifier = pipeline("zero-shot-classification",
+                      model="facebook/bart-large-mnli")
+
+candidate_labels = ['asking for time','calculation','play a game','asking for date',]
+
 def tronca_all_ultimo_punto(testo):
     ultimo_punto = testo.rfind('.')
     if ultimo_punto == -1:
@@ -43,7 +50,7 @@ def check_prompt(prompt):
     elif("che" in prompt and "ore sono" in prompt):
         return current_time.get_time("it")
     elif("che" in prompt and "ora è" in prompt):
-        return current_time.get_time()
+        return current_time.get_time("it")
 
     else:
         return ""
@@ -66,11 +73,25 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
         
         result_dict= transcribe.transcribe_audio("karpus.wav",whisper_model)
         result=result_dict["text"]
-
         result=remove_quotes(result,False) # remove from transcription quotes and duble quotes
+        
         if(is_echo):
-            response=check_prompt(result) # check if time is asked
-            #### aggiungere la parte dello zero shot classification
+            #understand class of result transcription 
+            classification=classifier(result, candidate_labels)
+            class_=classification["labels"][0]
+            
+            if(class_=="asking for time"):
+                response=current_time.get_time(result_dict["language"])
+                await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+            elif(class_=="asking for date"):
+                response=current_time.get_day(result_dict["language"])
+                await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+            elif(class_=="calculation"):
+                print("performing calculation")
+                await websocket.send(json.dumps({"text":"performing calculation", "lan":result_dict["language"]}))
+            elif(class_=="play a game"):
+                print("lets play")
+                await websocket.send(json.dumps({"text":"lets play", "lan":result_dict["language"]}))
 
         else: # se is_echo e' nulla significa che non e' stata fatta una richiesta specifica e la domanda va passata a llama
             print("questo e' il risultato "+result)
