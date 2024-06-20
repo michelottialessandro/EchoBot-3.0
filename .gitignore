@@ -1,2 +1,6 @@
 piper/
 Meta-Llama-3-8B-Instruct/
+__pycache__/
+karpus.wav
+prova.mp3
+speech_audio.wav
