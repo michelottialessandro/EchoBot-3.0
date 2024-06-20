@@ -9,6 +9,8 @@ import websocket
 from scipy.io import wavfile
 import json
 import serial
+import base64
+
 arduino = serial.Serial(port='/dev/ttyUSB0', baudrate=115200, timeout=1) #LASCIA TIMEOUT A !
 
 r = sr.Recognizer() # Crea una istanza del recognizer
@@ -23,10 +25,13 @@ phrases=["i am listening, please go on","i am listening","i am all ears","Go ahe
 
 
 
-def send_wav_file_and_get_response(websocket_url,data):
+def send_wav_file_and_get_response(websocket_url,data,is_echo):
     print("sending")
+    data = base64.b64encode(data).decode('utf-8')
+
+    json_data=json.dumps({"is_echo":is_echo,"data":data})
     ws=websocket.create_connection(websocket_url)
-    ws.send(data,websocket.ABNF.OPCODE_BINARY)
+    ws.send(json_data)
     response= ws.recv()
     ws.close()
     return response
@@ -156,7 +161,7 @@ def main():
             pcm = recorder.read()
             result = porcupine.process(pcm)
 
-            if result >= 0:
+            if result == 0:
                 #print('[%s] Detected %s' % (str(datetime.now()), keywords[result]))
                 print("im listening please go on")
                 phrase = phrases[random.randint(0,len(phrases)-1)]
@@ -166,9 +171,11 @@ def main():
 
                 with sr.Microphone() as source:
                     print("Say something!")
-                    audio = r.listen(source,)
+                    audio = r.listen(source,phrase_time_limit=6)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
-                result=send_wav_file_and_get_response(websocket_url=websocket_url,data=audio.get_wav_data())
+                arduino.write(bytes("thinking"+'\n','utf-8'))
+                result=send_wav_file_and_get_response(websocket_url=websocket_url,data=audio.get_wav_data(),is_echo=False)
+                arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
                 if(result["lan"]=="it"):
@@ -176,6 +183,20 @@ def main():
                 else:
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 os.system(command)
+                
+            elif result ==1:
+                arduino.write(bytes("listening"+'\n','utf-8'))
+                print("echobot")
+                with sr.Microphone() as source:
+                    print("Say something!")
+                    audio = r.listen(source,)
+                arduino.write(bytes("led_stop"+'\n','utf-8'))
+                arduino.write(bytes("thinking"+'\n','utf-8'))
+                result=send_wav_file_and_get_response(websocket_url=websocket_url,data=audio.get_wav_data(),is_echo=True)
+                arduino.write(bytes("led_stop"+'\n','utf-8'))
+
+            else:
+                pass
     except KeyboardInterrupt:
         print('Stopping ...')
     finally:
@@ -186,3 +207,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
