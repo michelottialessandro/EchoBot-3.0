@@ -47,6 +47,9 @@ def check_if_number_is_splitted(original_string,numbers,expression,litteral_oper
         
 def create_expression(string):
     
+    string=string.replace("?", "")
+
+    
     parts=string.split()
     
     numbers=[]
