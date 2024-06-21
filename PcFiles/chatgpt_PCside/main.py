@@ -13,10 +13,7 @@ import numpy as np
 import base64
 from transformers import pipeline
 from wordTonumber import create_expression
-classifier = pipeline("zero-shot-classification",
-                      model="facebook/bart-large-mnli")
 
-candidate_labels = ['asking for time','calculation','play a game','asking for date',]
 
 def tronca_all_ultimo_punto(testo):
     ultimo_punto = testo.rfind('.')
@@ -55,7 +52,7 @@ def check_prompt(prompt):
     else:
         return ""
 
-async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
+async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brain_queue, whisper_model):
     
     try:
         data=await websocket.recv()
@@ -77,8 +74,11 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
         
         if(is_echo):
             #understand class of result transcription 
-            classification=classifier(result, candidate_labels)
-            class_=classification["labels"][0]
+            # classification=classifier(result, candidate_labels)
+            # class_=classification["labels"][0]
+            print("sto usando il classifier")
+            trascript_queue_classifier.put(result)
+            class_=brain_queue.get()
             
             if(class_=="asking for time"):
                 response=current_time.get_time(result_dict["language"])
@@ -108,7 +108,8 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
                         cache_json[counter]=(json.loads(line))
                         counter=counter+1
                     file.close()
-            except:
+            except Exception as e:
+                print(e)
                 print("cache vuota")
             for i in range(len(cache_json)):
                 if(i<counter):
@@ -118,6 +119,8 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
                             language=cache_json[i]["lan"]
                             await websocket.send(json.dumps({"text":response, "lan":language}))
                             return
+            
+            
             print("input nuovo elaboro con modello")
 
             trascript_queue.put(result)
@@ -136,12 +139,12 @@ async def handle_audio(websocket,trascript_queue,brain_queue, whisper_model):
         print("Connection closed unexpectedly")
 
 
-def main_server_transcribe(trascript_queue,brain_queue):
+def main_server_transcribe(trascript_queue_classifier,trascript_queue,brain_queue):
     whisper_model=transcribe.setup_whisper()
     server_address = "0.0.0.0"
     server_port = 8700
 
-    handle_audio_with_params = partial(handle_audio,trascript_queue=trascript_queue,brain_queue=brain_queue, whisper_model=whisper_model)
+    handle_audio_with_params = partial(handle_audio,trascript_queue_classifier=trascript_queue_classifier,trascript_queue=trascript_queue,brain_queue=brain_queue, whisper_model=whisper_model)
 
     start_server = websockets.serve(handle_audio_with_params, server_address, server_port,)
 
@@ -158,18 +161,34 @@ def gpu_process(trascript_queue,brain_queue):
         result=get_response(message,generator)
         brain_queue.put(result)
 
+def zero_shot_classification(trascript_queue_classifier,brain_queue):
+    t1=time.time()
+    classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
+    candidate_labels = ['asking for time','calculation','play a game','asking for date',]
+    t2=time.time()
+    print(f"classifer loaded in: {t2-t1}")
+    while True:
+        message = trascript_queue_classifier.get()
+        print('sto processando '+message)
+        classification=classifier(message, candidate_labels)
+        class_=classification["labels"][0]
+        brain_queue.put(class_)
+    
 
 if __name__ == '__main__':
     # Create a multiprocessing Queue
     trascript_queue = multiprocessing.Queue()
     brain_queue=  multiprocessing.Queue()
+    trascript_queue_classifier= multiprocessing.Queue()
     # Create processes
     gpu_proc = multiprocessing.Process(target=gpu_process, args=(trascript_queue,brain_queue))
-    cpu_proc = multiprocessing.Process(target=main_server_transcribe, args=(trascript_queue,brain_queue))
-    
+    cpu_proc = multiprocessing.Process(target=main_server_transcribe, args=(trascript_queue_classifier,trascript_queue,brain_queue))
+    classifer=multiprocessing.Process(target=zero_shot_classification,args=(trascript_queue_classifier,brain_queue))
     # Start processes
     gpu_proc.start()
     time.sleep(120)
+    classifer.start()
+    time.sleep(20)
     cpu_proc.start()
 
     # Wait for both processes to finish

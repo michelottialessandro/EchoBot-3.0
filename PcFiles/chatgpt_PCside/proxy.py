@@ -16,7 +16,7 @@ async def handle_audio(web_socket, path):
     print("connesso")
     uri = "ws://172.18.92.64:8700" #wsl ip
     ws=websocket.create_connection(uri)
-    ws.send(encoded_audio,websocket.ABNF.OPCODE_BINARY)
+    ws.send(encoded_audio)
     response= ws.recv()
     print(response)
     await web_socket.send(response)
