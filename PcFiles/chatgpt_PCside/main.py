@@ -79,7 +79,7 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             print("sto usando il classifier")
             trascript_queue_classifier.put(result)
             class_=brain_queue.get()
-            
+            print(class_)
             if(class_=="asking for time"):
                 response=current_time.get_time(result_dict["language"])
                 await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
