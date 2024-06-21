@@ -84,6 +84,10 @@ def create_expression(string):
                     operator="/"
                     expression.append(operator)
                     litteral_operator=el
+                elif(el=="power"):
+                    operator="**"
+                    expression.append(operator)
+                    litteral_operator=el
             else:
                 raise InvalidExpressionError("More than one operator")
 
@@ -111,6 +115,8 @@ def create_expression(string):
         result=numbers[0]-numbers[1]
     elif(operator=="*"):
         result=numbers[0]*numbers[1]
+    elif(operator=="**"):
+        result=numbers[0]**numbers[1]
     elif(operator=="/"):
         if(numbers[1]!=0):
             result=numbers[0]/numbers[1]
@@ -119,11 +125,11 @@ def create_expression(string):
     
     return (f"The result is: {result}")
     
-# while True:
-#     string=input("Insert an expression: ")
+while True:
+    string=input("Insert an expression: ")
 
-#     result=create_expression(string)
+    result=create_expression(string)
 
-#     print(result)
+    print(result)
 
 

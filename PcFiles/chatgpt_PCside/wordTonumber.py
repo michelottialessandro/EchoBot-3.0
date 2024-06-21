@@ -68,25 +68,28 @@ def create_expression(string):
             numbers.append(number)
            
         except ValueError:
-            if(operator==""):
-                if(el=="plus"):
-                    operator="+"
-                    expression.append(operator)
-                    litteral_operator=el
-                elif(el=="minus"):
-                    operator="-"
-                    expression.append(operator)
-                    litteral_operator=el
-                elif(el=="times"):
-                    operator="*"
-                    expression.append(operator)
-                    litteral_operator=el
-                elif(el=="divided"):
-                    operator="/"
-                    expression.append(operator)
-                    litteral_operator=el
-            else:
-                raise InvalidExpressionError("More than one operator")
+            print(operator)
+            
+            if(el=="plus"):
+                operator="+"
+                expression.append(operator)
+                litteral_operator=el
+            elif(el=="minus"):
+                operator="-"
+                expression.append(operator)
+                litteral_operator=el
+            elif(el=="times"):
+                operator="*"
+                expression.append(operator)
+                litteral_operator=el
+            elif(el=="divided"):
+                operator="/"
+                expression.append(operator)
+                litteral_operator=el
+            elif(el=="power"):
+                operator="**"
+                expression.append(operator)
+                litteral_operator=el
 
     
     if (len(numbers)<2):
@@ -112,6 +115,8 @@ def create_expression(string):
         result=numbers[0]-numbers[1]
     elif(operator=="*"):
         result=numbers[0]*numbers[1]
+    elif(operator=="**"):
+        result=numbers[0]**numbers[1]
     elif(operator=="/"):
         if(numbers[1]!=0):
             result=numbers[0]/numbers[1]
