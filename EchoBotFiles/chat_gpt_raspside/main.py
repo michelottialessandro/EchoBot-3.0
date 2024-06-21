@@ -194,7 +194,13 @@ def main():
                 arduino.write(bytes("thinking"+'\n','utf-8'))
                 result=send_wav_file_and_get_response(websocket_url=websocket_url,data=audio.get_wav_data(),is_echo=True)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
-
+                result=json.loads(result)
+                print(result)
+                if(result["lan"]=="it"):
+                    command=f'echo "{result["text"]}" |   ./piper/piper --model piper/it_IT-riccardo-x_low.onnx --config piper/it_it_IT_riccardo_x_low_it_IT-riccardo-x_low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
+                else:
+                    command=f'echo "{result["text"]}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
+                os.system(command)
             else:
                 pass
     except KeyboardInterrupt:
