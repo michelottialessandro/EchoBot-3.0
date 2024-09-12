@@ -4,3 +4,4 @@ __pycache__/
 PcFiles/chatgpt_PCside/karpus.wav
 prova.mp3
 speech_audio.wav
+PcFiles/train_zero_shot_classification/modello_personalizzato/model.safetensors
