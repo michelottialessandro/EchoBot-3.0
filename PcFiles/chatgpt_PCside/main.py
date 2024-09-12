@@ -36,21 +36,21 @@ def remove_quotes(string,is_response):
 
     return string
 
-def check_prompt(prompt):
-    prompt=prompt.lower()
-    if("what" in prompt and "time" in prompt and "is" in prompt):
-        return current_time.get_time("en")
-    elif("what day" in prompt and "today" in prompt):
-        return current_time.get_day("en")
-    elif("che" in prompt and "giorno" in prompt):
-        return current_time.get_day("it")
-    elif("che" in prompt and "ore sono" in prompt):
-        return current_time.get_time("it")
-    elif("che" in prompt and "ora è" in prompt):
-        return current_time.get_time("it")
+# def check_prompt(prompt):
+#     prompt=prompt.lower()
+#     if("what" in prompt and "time" in prompt and "is" in prompt):
+#         return current_time.get_time("en")
+#     elif("what day" in prompt and "today" in prompt):
+#         return current_time.get_day("en")
+#     elif("che" in prompt and "giorno" in prompt):
+#         return current_time.get_day("it")
+#     elif("che" in prompt and "ore sono" in prompt):
+#         return current_time.get_time("it")
+#     elif("che" in prompt and "ora è" in prompt):
+#         return current_time.get_time("it")
 
-    else:
-        return ""
+#     else:
+#         return ""
 
 async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brain_queue, whisper_model):
     
@@ -97,7 +97,13 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             elif(class_=="play a game"):
                 print("lets play")
                 await websocket.send(json.dumps({"text":"lets play", "lan":result_dict["language"]}))
-
+            
+            elif(class_=="set a timer"):
+                print("Setting a timer")
+            
+            elif(class_=="set an allert"):
+                print("Setting an allert")
+                
         else: # se is_echo e' nulla significa che non e' stata fatta una richiesta specifica e la domanda va passata a llama
             print("questo e' il risultato "+result)
             cache_json=np.empty(1000000,dtype=dict)
@@ -164,7 +170,7 @@ def gpu_process(trascript_queue,brain_queue):
 def zero_shot_classification(trascript_queue_classifier,brain_queue):
     t1=time.time()
     classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
-    candidate_labels = ['asking for time','calculation','play a game','asking for date',]
+    candidate_labels = ['asking for time','calculation','play a game','asking for date',"set a timer","set an allert"]
     t2=time.time()
     print(f"classifer loaded in: {t2-t1}")
     while True:

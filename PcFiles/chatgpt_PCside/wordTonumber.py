@@ -1,5 +1,4 @@
-import word2number
-import word2number.w2n
+from word2number_en_ita import w2n
 
 #print(word2number.w2n.word_to_num("seventy five"))
 
@@ -37,9 +36,9 @@ def check_if_number_is_splitted(original_string,numbers,expression,litteral_oper
     
     print(new_splitted_string)
     
-    correct_numbers.append(word2number.w2n.word_to_num(new_splitted_string[0]))
+    correct_numbers.append(w2n.word_to_num(new_splitted_string[0]))
     
-    correct_numbers.append(word2number.w2n.word_to_num(new_splitted_string[1]))
+    correct_numbers.append(w2n.word_to_num(new_splitted_string[1]))
     
     return correct_numbers
     
@@ -63,7 +62,7 @@ def create_expression(string):
     
     for el in parts:
         try:
-            number=(word2number.w2n.word_to_num(el))
+            number=(w2n.word_to_num(el))
             expression.append(number)
             numbers.append(number)
            
@@ -125,11 +124,12 @@ def create_expression(string):
     
     return result
     
-# while True:
-#     string=input("Insert an expression: ")
+if __name__ == "__main__":
+    while True:
+        string=input("Insert an expression: ")
 
-#     result=create_expression(string)
+        result=create_expression(string)
 
-#     print(result)
+        print(result)
 
 
