@@ -1,7 +1,8 @@
-piper/
+xpiper/
 Meta-Llama-3-8B-Instruct/
 __pycache__/
-PcFiles/chatgpt_PCside/karpus.wav
+karpus.wav
 prova.mp3
 speech_audio.wav
 train_zero_shot_classification/
+other_stuff/
