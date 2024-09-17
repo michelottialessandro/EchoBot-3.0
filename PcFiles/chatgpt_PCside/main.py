@@ -13,7 +13,8 @@ import numpy as np
 import base64
 from transformers import pipeline
 from wordTonumber import create_expression
-
+import os
+spegnimento=["buonanotte","buona notte","good night", "goodnight","spegni","spegniti","shutdown","shut down"]
 
 def tronca_all_ultimo_punto(testo):
     ultimo_punto = testo.rfind('.')
@@ -77,6 +78,10 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             # classification=classifier(result, candidate_labels)
             # class_=classification["labels"][0]
             print("sto usando il classifier")
+            if(result in spegnimento):
+                await websocket.send(json.dumps({"command":"shutdown"}))
+                os.system('sudo shutdown now')
+
             trascript_queue_classifier.put(result)
             class_=brain_queue.get()
             print(class_)
@@ -94,9 +99,13 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 except:
                     await websocket.send(json.dumps({"text":"There has been an  server internal error during calculation", "lan":"en"}))
 
-            elif(class_=="play a game"):
-                print("lets play")
-                await websocket.send(json.dumps({"text":"lets play", "lan":result_dict["language"]}))
+            elif(class_=="turn on lights"):
+                print("turn on")
+                await websocket.send(json.dumps({"text":"turn on", "lan":result_dict["language"]}))
+            
+            elif(class_=="turn off lights"):
+                print("turn off")
+                await websocket.send(json.dumps({"text":"turn off", "lan":result_dict["language"]}))
             
             elif(class_=="set a timer"):
                 print("Setting a timer")
@@ -170,13 +179,14 @@ def gpu_process(trascript_queue,brain_queue):
 def zero_shot_classification(trascript_queue_classifier,brain_queue):
     t1=time.time()
     classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
-    candidate_labels = ['asking for time','calculation','play a game','asking for date',"set a timer","set an allert"]
+    candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","tun off lights"]
     t2=time.time()
     print(f"classifer loaded in: {t2-t1}")
     while True:
         message = trascript_queue_classifier.get()
         print('sto processando '+message)
         classification=classifier(message, candidate_labels)
+        print(classification)
         class_=classification["labels"][0]
         brain_queue.put(class_)
     

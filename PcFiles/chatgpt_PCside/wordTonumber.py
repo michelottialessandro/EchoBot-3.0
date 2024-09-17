@@ -1,5 +1,5 @@
 from word2number_en_ita import w2n
-
+import math
 #print(word2number.w2n.word_to_num("seventy five"))
 
 
@@ -89,7 +89,10 @@ def create_expression(string):
                 operator="**"
                 expression.append(operator)
                 litteral_operator=el
-
+            elif(el=="square root"):
+                operator="root"
+                expression.append(operator)
+                litteral_operator=el
     
     if (len(numbers)<2):
         raise InvalidExpressionError("Invalid numbers")
@@ -116,6 +119,8 @@ def create_expression(string):
         result=numbers[0]*numbers[1]
     elif(operator=="**"):
         result=numbers[0]**numbers[1]
+    elif(operator=="root"):
+        result=math.sqrt(numbers[0])
     elif(operator=="/"):
         if(numbers[1]!=0):
             result=numbers[0]/numbers[1]
