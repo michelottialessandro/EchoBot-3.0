@@ -178,7 +178,10 @@ def main():
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
-                if(result["lan"]=="it"):
+                if(result["command"]=="shutdown"):
+                    os.system('sudo shutdown now')
+
+                elif(result["lan"]=="it"):
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/it_IT-riccardo-x_low.onnx --config piper/it_it_IT_riccardo_x_low_it_IT-riccardo-x_low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 else:
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
