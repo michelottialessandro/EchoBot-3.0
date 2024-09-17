@@ -164,10 +164,10 @@ def main():
             if result == 0:
                 #print('[%s] Detected %s' % (str(datetime.now()), keywords[result]))
                 print("im listening please go on")
+                arduino.write(bytes("listening"+'\n','utf-8'))
                 phrase = phrases[random.randint(0,len(phrases)-1)]
                 command=f'echo "{phrase}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 os.system(command)
-                arduino.write(bytes("listening"+'\n','utf-8'))
 
                 with sr.Microphone() as source:
                     print("Say something!")
