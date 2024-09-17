@@ -1,0 +1,14 @@
+Questo e' una versione modificata del file transcribe.py della libreria whisper path  \\wsl.localhost\Ubuntu\home\amichelo\.local\lib\python3.10\site-packages\whisper\transcribe.py
+
+Con questa modifica il modello e' forzato ad utilizzare la trascrizione in italiano se la lingua automaticamente rilevata non e' l inglese, in questo modo non avviene piu' 
+che l italiano venga confuso con lo spagnolo.
+
+Sostituire questo file al path precedentemente specificato se si rinstalla la libreria whisper. Su amichelo pc va sustituito nella directory di installazione su Ubuntu
+e non a quella su windows. 
+
+La modifica consiste nell aver aggiunto il paramentro decode_options:dict = {}, a cui prima veniva veniva assegnato il valore dalla funzione _, probs = model.detect_language(mel_segment)
+pre_decode_options["language"] = max(probs, key=probs.get) e non so per quale motivo se si provava a cambiargli valore qualora non fosse stato quello desiderato sembrava non cambiare niente
+percio' ora il tokenaizer si setta sulla lingua corretta in base alla variabile decode_options:dict = {} che con un if statement assume il valore o di {language:"it"} o di {language:"en"}
+in base al valore di pre_decode_options["language"]
+
+Spero che il me del futurocapisca quello che ho scritto.
