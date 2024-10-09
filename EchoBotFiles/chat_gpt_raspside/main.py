@@ -22,22 +22,21 @@ KEYWORD_PATH="Hey-computer_en_raspberry-pi_v3_0_0.ppn"
 
 phrases=["i am listening, please go on","i am listening","i am all ears","Go ahead, I'm listening intently","I'm here to listen"]
         
-
-
-
-def send_wav_file_and_get_response(websocket_url,data,is_echo):
-    print("sending")
-    data = base64.b64encode(data).decode('utf-8')
-
-    json_data=json.dumps({"is_echo":is_echo,"data":data})
-    ws=websocket.create_connection(websocket_url)
-    ws.send(json_data)
-    response= ws.recv()
-    ws.close()
-    return response
-
 # WebSocket URL
 websocket_url = "ws://192.168.178.185:8765"
+
+ws=websocket.create_connection(websocket_url)
+
+
+def send_wav_file_and_get_response(data,is_echo):
+    print("sending")
+    data = base64.b64encode(data).decode('utf-8')
+    json_data=json.dumps({"is_echo":is_echo,"data":data})
+    ws.send(json_data)
+    response= ws.recv()
+    return response
+
+
 
 
 def main():
@@ -178,7 +177,7 @@ def main():
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
-                if(result["command"]=="shutdown"):
+                if(result["text"]=="shutdown"):
                     os.system('sudo shutdown now')
 
                 elif(result["lan"]=="it"):
