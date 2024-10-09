@@ -1,7 +1,6 @@
 import asyncio
 import websockets
 import json
-import multiprocessing as mp
 from llama3_main import set_up_generator, get_response
 import current_time
 import transcribe
@@ -14,6 +13,7 @@ import base64
 from transformers import pipeline
 from wordTonumber import create_expression
 import os
+from lights import lights_manager
 spegnimento=["buonanotte","buona notte","good night", "goodnight","spegni","spegniti","shutdown","shut down"]
 
 def tronca_all_ultimo_punto(testo):
@@ -28,8 +28,8 @@ def tronca_all_ultimo_punto(testo):
 def remove_quotes(string,is_response):
     if(is_response==False):
         string = string.replace('"', '')
-        string = string.replace("'", '')
-        string = string.replace("*", '')
+        string = string.replace("'", "")
+        string = string.replace("*", "")
         string=string.lower()
 
     else:
@@ -79,7 +79,7 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             # class_=classification["labels"][0]
             print("sto usando il classifier")
             if(result in spegnimento):
-                await websocket.send(json.dumps({"command":"shutdown"}))
+                await websocket.send(json.dumps({"text":"shutdown"}))
                 os.system('sudo shutdown now')
 
             trascript_queue_classifier.put(result)
@@ -101,10 +101,12 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
 
             elif(class_=="turn on lights"):
                 print("turn on")
+                lights_manager(True,result)
                 await websocket.send(json.dumps({"text":"turn on", "lan":result_dict["language"]}))
             
             elif(class_=="turn off lights"):
                 print("turn off")
+                lights_manager(False,"")
                 await websocket.send(json.dumps({"text":"turn off", "lan":result_dict["language"]}))
             
             elif(class_=="set a timer"):
@@ -113,6 +115,11 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             elif(class_=="set an allert"):
                 print("Setting an allert")
                 
+            elif(class_=="low confidence"):
+                print(class_)
+                await websocket.send(json.dumps({"text":"I did not understand, please repeat.", "lan":result_dict["language"]}))
+
+               
         else: # se is_echo e' nulla significa che non e' stata fatta una richiesta specifica e la domanda va passata a llama
             print("questo e' il risultato "+result)
             cache_json=np.empty(1000000,dtype=dict)
@@ -183,12 +190,16 @@ def zero_shot_classification(trascript_queue_classifier,brain_queue):
     t2=time.time()
     print(f"classifer loaded in: {t2-t1}")
     while True:
-        message = trascript_queue_classifier.get()
+        message = trascript_queue_classifier.get() #.get() e' bloccate rimuove un elemento dalla coda e blocca l esecuzione del programma fino a quando non e' available un altro item
         print('sto processando '+message)
         classification=classifier(message, candidate_labels)
         print(classification)
         class_=classification["labels"][0]
-        brain_queue.put(class_)
+        if(classification["scores"][0]>=0.45):
+            brain_queue.put(class_)
+        else:
+            brain_queue.put("low confidence")
+        
     
 
 if __name__ == '__main__':
