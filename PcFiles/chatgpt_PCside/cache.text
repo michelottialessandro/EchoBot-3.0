@@ -56,3 +56,4 @@
 {"input": " whats his name?", "output": "I'm happy to help! However, I need more context or information about who you are referring to. Could you please provide more details or clarify who you are asking about? I'll do my best to help you out!", "lan": "en"}
 {"input": " ciao!", "output": "Ciao! Come stai?", "lan": "it"}
 {"input": " quali sono i primi 10 numeri?", "output": "I primi 10 numeri naturali sono:\n\n1. 1\n2. 2\n3. 3\n4. 4\n5. 5\n6. 6\n7. 7\n8. 8\n9. 9\n10. 10", "lan": "it"}
+{"input": " which are the first 10 primes number", "output": "The first 10 prime numbers are:\n\n1. 2\n2. 3\n3. 5\n4. 7\n5. 11\n6. 13\n7. 17\n8. 19\n9. 23\n10. 29\n\nNote that prime numbers are numbers that are divisible only by themselves and 1.", "lan": "en"}

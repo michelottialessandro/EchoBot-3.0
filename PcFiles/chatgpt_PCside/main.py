@@ -37,21 +37,6 @@ def remove_quotes(string,is_response):
 
     return string
 
-# def check_prompt(prompt):
-#     prompt=prompt.lower()
-#     if("what" in prompt and "time" in prompt and "is" in prompt):
-#         return current_time.get_time("en")
-#     elif("what day" in prompt and "today" in prompt):
-#         return current_time.get_day("en")
-#     elif("che" in prompt and "giorno" in prompt):
-#         return current_time.get_day("it")
-#     elif("che" in prompt and "ore sono" in prompt):
-#         return current_time.get_time("it")
-#     elif("che" in prompt and "ora è" in prompt):
-#         return current_time.get_time("it")
-
-#     else:
-#         return ""
 
 async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brain_queue, whisper_model):
     
@@ -78,7 +63,10 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             # classification=classifier(result, candidate_labels)
             # class_=classification["labels"][0]
             print("sto usando il classifier")
-            if(result in spegnimento):
+            prov=result.lower()
+            prov=result.replace(".","")
+            print(prov)
+            if(prov in spegnimento):
                 await websocket.send(json.dumps({"text":"shutdown"}))
                 os.system('sudo shutdown now')
 
@@ -106,7 +94,7 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             
             elif(class_=="turn off lights"):
                 print("turn off")
-                lights_manager(False,"")
+                lights_manager(is_on=False,text="")
                 await websocket.send(json.dumps({"text":"turn off", "lan":result_dict["language"]}))
             
             elif(class_=="set a timer"):
@@ -186,7 +174,7 @@ def gpu_process(trascript_queue,brain_queue):
 def zero_shot_classification(trascript_queue_classifier,brain_queue):
     t1=time.time()
     classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
-    candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","tun off lights"]
+    candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","turn off lights"]
     t2=time.time()
     print(f"classifer loaded in: {t2-t1}")
     while True:
