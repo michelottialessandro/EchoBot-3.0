@@ -43,7 +43,7 @@ async def send_wav_file_and_get_response(data,is_echo):
 
 
 
-def main():
+async def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -198,7 +198,7 @@ def main():
                     audio = r.listen(source,)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 arduino.write(bytes("thinking"+'\n','utf-8'))
-                result=send_wav_file_and_get_response(data=audio.get_wav_data(),is_echo=True)
+                await result=send_wav_file_and_get_response(data=audio.get_wav_data(),is_echo=True)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
