@@ -25,14 +25,14 @@ phrases=["i am listening, please go on","i am listening","i am all ears","Go ahe
 # WebSocket URL
 websocket_url = "ws://192.168.178.185:8765"
 
-ws=websocket.create_connection(websocket_url)
 
 
-async def send_wav_file_and_get_response(data,is_echo):
+def send_wav_file_and_get_response(data,is_echo):
     print("sending")
     data = base64.b64encode(data).decode('utf-8')
     json_data=json.dumps({"is_echo":is_echo,"data":data})
-    await ws.send(json_data)
+    ws=websocket.create_connection(websocket_url)
+    ws.send(json_data)
     response= ws.recv()
     if(response!=""):
         print(response)
@@ -43,7 +43,7 @@ async def send_wav_file_and_get_response(data,is_echo):
 
 
 
-async def main():
+def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -198,7 +198,7 @@ async def main():
                     audio = r.listen(source,)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 arduino.write(bytes("thinking"+'\n','utf-8'))
-                await result=send_wav_file_and_get_response(data=audio.get_wav_data(),is_echo=True)
+                result=send_wav_file_and_get_response(data=audio.get_wav_data(),is_echo=True)
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)

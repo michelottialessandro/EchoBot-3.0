@@ -10,13 +10,13 @@ import os
 server_address = "0.0.0.0"
 server_port = 8765
 uri = "ws://172.18.92.64:8700" #wsl ip
-ws=websocket.create_connection(uri)
 
 async def handle_audio(web_socket, path):
     encoded_audio = await web_socket.recv()
     print("connesso")
-    await ws.send(encoded_audio)
-    data=  ws.recv()
+    ws=websocket.create_connection(uri) # lasciare questaa linea di codice anche se parzialmente incorretta altrimenti non funziona non so perche'
+    ws.send(encoded_audio)
+    data= ws.recv()
     print(type(data))
     print(data)
     await web_socket.send(data)
