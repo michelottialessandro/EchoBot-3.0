@@ -28,12 +28,16 @@ websocket_url = "ws://192.168.178.185:8765"
 ws=websocket.create_connection(websocket_url)
 
 
-def send_wav_file_and_get_response(data,is_echo):
+async def send_wav_file_and_get_response(data,is_echo):
     print("sending")
     data = base64.b64encode(data).decode('utf-8')
     json_data=json.dumps({"is_echo":is_echo,"data":data})
-    ws.send(json_data)
+    await ws.send(json_data)
     response= ws.recv()
+    if(response!=""):
+        print(response)
+    else:
+        print("empty")
     return response
 
 
@@ -177,10 +181,10 @@ def main():
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
-                if(result["text"]=="shutdown"):
-                    os.system('sudo shutdown now')
+                # if(result["text"]=="shutdown"):
+                #     os.system('sudo shutdown now')
 
-                elif(result["lan"]=="it"):
+                if(result["lan"]=="it"):
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/it_IT-riccardo-x_low.onnx --config piper/it_it_IT_riccardo_x_low_it_IT-riccardo-x_low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 else:
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'

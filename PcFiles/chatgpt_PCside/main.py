@@ -14,7 +14,21 @@ from transformers import pipeline
 from wordTonumber import create_expression
 import os
 from lights import lights_manager
+import joblib
 spegnimento=["buonanotte","buona notte","good night", "goodnight","spegni","spegniti","shutdown","shut down"]
+
+svm_classifier=joblib.load("svm_model.pkl")
+vectorizer=joblib.load("vectorizer.pkl")
+
+def classify(text):
+    new_phrase=[]
+    new_phrase.append(text)
+    
+    new_phrase_tfidf = vectorizer.transform(new_phrase)
+    prediction=svm_classifier.predict(new_phrase_tfidf)
+    
+    return prediction[0]
+
 
 def tronca_all_ultimo_punto(testo):
     ultimo_punto = testo.rfind('.')
@@ -70,10 +84,11 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 await websocket.send(json.dumps({"text":"shutdown"}))
                 os.system('sudo shutdown now')
 
-            trascript_queue_classifier.put(result)
-            class_=brain_queue.get()
+            #trascript_queue_classifier.put(result)
+            #class_=brain_queue.get()
+            class_=classify(result)
             print(class_)
-            if(class_=="asking for time"):
+            if(class_=="time"):
                 response=current_time.get_time(result_dict["language"])
                 await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
             elif(class_=="asking for date"):
@@ -87,20 +102,20 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 except:
                     await websocket.send(json.dumps({"text":"There has been an  server internal error during calculation", "lan":"en"}))
 
-            elif(class_=="turn on lights"):
+            elif(class_=="lights_on"):
                 print("turn on")
                 lights_manager(True,result)
                 await websocket.send(json.dumps({"text":"turn on", "lan":result_dict["language"]}))
             
-            elif(class_=="turn off lights"):
+            elif(class_=="lights_off"):
                 print("turn off")
                 lights_manager(is_on=False,text="")
                 await websocket.send(json.dumps({"text":"turn off", "lan":result_dict["language"]}))
             
-            elif(class_=="set a timer"):
+            elif(class_=="timer_en"):
                 print("Setting a timer")
             
-            elif(class_=="set an allert"):
+            elif(class_=="alarm"):
                 print("Setting an allert")
                 
             elif(class_=="low confidence"):
@@ -133,16 +148,14 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             
             print("input nuovo elaboro con modello")
 
-            trascript_queue.put(result)
+            trascript_queue.put(result)   # inserisce la trascrizione in questa coda cosi che il processo gpu_process potra' leggerla e iniziare l elaborazione
             response=brain_queue.get()
             response=remove_quotes(response,True)
             with open("cache.text", "a") as file:
                 file.write(json.dumps({"input":result,"output":response,"lan":result_dict["language"]}) + '\n')
                 file.close()
             await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
-        # else:
-        #     print("processato")
-        #     await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+       
 
 
     except websockets.exceptions.ConnectionClosedError:
@@ -171,22 +184,22 @@ def gpu_process(trascript_queue,brain_queue):
         result=get_response(message,generator)
         brain_queue.put(result)
 
-def zero_shot_classification(trascript_queue_classifier,brain_queue):
-    t1=time.time()
-    classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
-    candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","turn off lights"]
-    t2=time.time()
-    print(f"classifer loaded in: {t2-t1}")
-    while True:
-        message = trascript_queue_classifier.get() #.get() e' bloccate rimuove un elemento dalla coda e blocca l esecuzione del programma fino a quando non e' available un altro item
-        print('sto processando '+message)
-        classification=classifier(message, candidate_labels)
-        print(classification)
-        class_=classification["labels"][0]
-        if(classification["scores"][0]>=0.45):
-            brain_queue.put(class_)
-        else:
-            brain_queue.put("low confidence")
+# def zero_shot_classification(trascript_queue_classifier,brain_queue):
+#     t1=time.time()
+#     classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
+#     candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","turn off lights"]
+#     t2=time.time()
+#     print(f"classifer loaded in: {t2-t1}")
+#     while True:
+#         message = trascript_queue_classifier.get() #.get() e' bloccate rimuove un elemento dalla coda e blocca l esecuzione del programma fino a quando non e' available un altro item
+#         print('sto processando '+message)
+#         classification=classifier(message, candidate_labels)
+#         print(classification)
+#         class_=classification["labels"][0]
+#         if(classification["scores"][0]>=0.45):
+#             brain_queue.put(class_)
+#         else:
+#             brain_queue.put("low confidence")
         
     
 
@@ -198,12 +211,12 @@ if __name__ == '__main__':
     # Create processes
     gpu_proc = multiprocessing.Process(target=gpu_process, args=(trascript_queue,brain_queue))
     cpu_proc = multiprocessing.Process(target=main_server_transcribe, args=(trascript_queue_classifier,trascript_queue,brain_queue))
-    classifer=multiprocessing.Process(target=zero_shot_classification,args=(trascript_queue_classifier,brain_queue))
+    #classifer=multiprocessing.Process(target=zero_shot_classification,args=(trascript_queue_classifier,brain_queue))
     # Start processes
     gpu_proc.start()
     time.sleep(120)
-    classifer.start()
-    time.sleep(20)
+    # classifer.start()
+    # time.sleep(20)
     cpu_proc.start()
 
     # Wait for both processes to finish
