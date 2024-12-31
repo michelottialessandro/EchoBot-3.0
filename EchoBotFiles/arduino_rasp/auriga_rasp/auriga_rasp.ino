@@ -220,12 +220,12 @@ void loop()
       Encoder_2.setTarPWM(255);
     }
     else if (data_ == "back") {
-      Encoder_1.setTarPWM(-100);
-      Encoder_2.setTarPWM(100);
+      Encoder_1.setTarPWM(-200);
+      Encoder_2.setTarPWM(200);
     }
     else if ( data_ == "forward") {
-      Encoder_1.setTarPWM(150);
-      Encoder_2.setTarPWM(-150);
+      Encoder_1.setTarPWM(255);
+      Encoder_2.setTarPWM(-255);
     }
     else if ( data_ == "listening") {
       is_listening = true;

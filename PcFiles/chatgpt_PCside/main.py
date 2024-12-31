@@ -15,10 +15,14 @@ from wordTonumber import create_expression
 import os
 from lights import lights_manager
 import joblib
+from set_timer import extract_info
+import threading
 spegnimento=["buonanotte","buona notte","good night", "goodnight","spegni","spegniti","shutdown","shut down"]
 
 svm_classifier=joblib.load("svm_model.pkl")
 vectorizer=joblib.load("vectorizer.pkl")
+
+
 
 def classify(text):
     new_phrase=[]
@@ -53,6 +57,13 @@ def remove_quotes(string,is_response):
 
 
 async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brain_queue, whisper_model):
+
+    async def timer(seconds):
+        print(f"Timer avviato per {seconds} secondi.")
+        await asyncio.sleep(seconds)
+        print("Tempo scaduto!")
+        await websocket.send(json.dumps({"text":"!!!TIMER STOP!!!", "lan":"en"}))
+
     
     try:
         data=await websocket.recv()
@@ -89,17 +100,23 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             class_=classify(result)
             print(class_)
             if(class_=="time"):
-                response=current_time.get_time(result_dict["language"])
-                await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+                response=current_time.get_time("en")
+                await websocket.send(json.dumps({"text":response, "lan":"en"}))
+            elif(class_=="orario"):
+                response=current_time.get_time("it")
+                await websocket.send(json.dumps({"text":response, "lan":"it"}))
+                
             elif(class_=="asking for date"):
                 response=current_time.get_day(result_dict["language"])
                 await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+            
             elif(class_=="calculation"):
                 print("performing calculation")
                 try:
                     result=create_expression(result)
-                    await websocket.send(json.dumps({"text":result, "lan":result_dict["language"]}))
+                    await websocket.send(json.dumps({"text":str(result), "lan":result_dict["language"]}))
                 except:
+                    print("There has been an  server internal error during calculation")
                     await websocket.send(json.dumps({"text":"There has been an  server internal error during calculation", "lan":"en"}))
 
             elif(class_=="lights_on"):
@@ -107,14 +124,26 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 lights_manager(True,result)
                 await websocket.send(json.dumps({"text":"turn on", "lan":result_dict["language"]}))
             
+            elif(class_=="luci_accese"):
+                print("turn on")
+                lights_manager(True,result)
+                await websocket.send(json.dumps({"text":"Luci accese", "lan":"it"}))
+            
             elif(class_=="lights_off"):
                 print("turn off")
                 lights_manager(is_on=False,text="")
                 await websocket.send(json.dumps({"text":"turn off", "lan":result_dict["language"]}))
             
-            elif(class_=="timer_en"):
-                print("Setting a timer")
+            elif(class_=="luci_spente"):
+                print("turn off")
+                lights_manager(is_on=False,text="")
+                await websocket.send(json.dumps({"text":"luci spente", "lan":"it"}))
             
+            elif(class_=="timer_en"):
+                time=extract_info(text=result,lan="en")
+                asyncio.create_task(timer(time))
+                await websocket.send(json.dumps({"text":"timer is set", "lan":"en"}))
+
             elif(class_=="alarm"):
                 print("Setting an allert")
                 
@@ -184,24 +213,6 @@ def gpu_process(trascript_queue,brain_queue):
         result=get_response(message,generator)
         brain_queue.put(result)
 
-# def zero_shot_classification(trascript_queue_classifier,brain_queue):
-#     t1=time.time()
-#     classifier = pipeline("zero-shot-classification",model="facebook/bart-large-mnli")
-#     candidate_labels = ['asking for time','calculation','turn on lights','asking for date',"set a timer","set an allert","turn off lights"]
-#     t2=time.time()
-#     print(f"classifer loaded in: {t2-t1}")
-#     while True:
-#         message = trascript_queue_classifier.get() #.get() e' bloccate rimuove un elemento dalla coda e blocca l esecuzione del programma fino a quando non e' available un altro item
-#         print('sto processando '+message)
-#         classification=classifier(message, candidate_labels)
-#         print(classification)
-#         class_=classification["labels"][0]
-#         if(classification["scores"][0]>=0.45):
-#             brain_queue.put(class_)
-#         else:
-#             brain_queue.put("low confidence")
-        
-    
 
 if __name__ == '__main__':
     # Create a multiprocessing Queue
@@ -211,15 +222,10 @@ if __name__ == '__main__':
     # Create processes
     gpu_proc = multiprocessing.Process(target=gpu_process, args=(trascript_queue,brain_queue))
     cpu_proc = multiprocessing.Process(target=main_server_transcribe, args=(trascript_queue_classifier,trascript_queue,brain_queue))
-    #classifer=multiprocessing.Process(target=zero_shot_classification,args=(trascript_queue_classifier,brain_queue))
-    # Start processes
+   
     gpu_proc.start()
     time.sleep(120)
-    # classifer.start()
-    # time.sleep(20)
+  
     cpu_proc.start()
 
-    # Wait for both processes to finish
-    # gpu_proc.join()
-    # cpu_proc.join()
     
