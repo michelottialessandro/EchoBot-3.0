@@ -1,6 +1,5 @@
 import asyncio
 import websockets
-import json
 from llama3_main import set_up_generator, get_response
 import current_time
 import transcribe
@@ -57,27 +56,19 @@ def remove_quotes(string,is_response):
 
 
 async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brain_queue, whisper_model):
-
-    async def timer(seconds):
-        print(f"Timer avviato per {seconds} secondi.")
-        await asyncio.sleep(seconds)
-        print("Tempo scaduto!")
-        await websocket.send(json.dumps({"text":"!!!TIMER STOP!!!", "lan":"en"}))
-
-    
+   
     try:
         data=await websocket.recv()
         data=json.loads(data)
         is_echo=data["is_echo"]
         encoded_audio = data["data"]
         print(type(encoded_audio))
-
+        print(f"Received audio data of type: {type(encoded_audio)}")
         decoded_audio = base64.b64decode(encoded_audio.encode('utf-8'))
 
         with open("karpus.wav","wb") as f:
             f.write(decoded_audio)
             print("saved")
-            f.close()
         
         result_dict= transcribe.transcribe_audio("karpus.wav",whisper_model)
         result=result_dict["text"]
@@ -89,7 +80,7 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
             # class_=classification["labels"][0]
             print("sto usando il classifier")
             prov=result.lower()
-            prov=result.replace(".","")
+            prov=prov.replace(".","")
             print(prov)
             if(prov in spegnimento):
                 await websocket.send(json.dumps({"text":"shutdown"}))
@@ -106,18 +97,22 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 response=current_time.get_time("it")
                 await websocket.send(json.dumps({"text":response, "lan":"it"}))
                 
-            elif(class_=="asking for date"):
-                response=current_time.get_day(result_dict["language"])
-                await websocket.send(json.dumps({"text":response, "lan":result_dict["language"]}))
+            elif(class_=="date"):
+                response=current_time.get_day("en")
+                await websocket.send(json.dumps({"text":response, "lan":"en"}))
+                
+            elif(class_=="data"):
+                response=current_time.get_day("it")
+                await websocket.send(json.dumps({"text":response, "lan":"it"}))
             
             elif(class_=="calculation"):
                 print("performing calculation")
                 try:
                     result=create_expression(result)
                     await websocket.send(json.dumps({"text":str(result), "lan":result_dict["language"]}))
-                except:
-                    print("There has been an  server internal error during calculation")
-                    await websocket.send(json.dumps({"text":"There has been an  server internal error during calculation", "lan":"en"}))
+                except Exception as e:
+                    print(f"There has been a server internal error during calculation: {e}")
+                    await websocket.send(json.dumps({"text":"There has been a server internal error during calculation", "lan":"en"}))
 
             elif(class_=="lights_on"):
                 print("turn on")
@@ -140,9 +135,8 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                 await websocket.send(json.dumps({"text":"luci spente", "lan":"it"}))
             
             elif(class_=="timer_en"):
-                time=extract_info(text=result,lan="en")
-                asyncio.create_task(timer(time))
-                await websocket.send(json.dumps({"text":"timer is set", "lan":"en"}))
+                time=extract_info(text=result)
+                await websocket.send(json.dumps({"text":"timer is set", "lan":"en","time":time}))
 
             elif(class_=="alarm"):
                 print("Setting an allert")
@@ -161,10 +155,8 @@ async def handle_audio(websocket,trascript_queue_classifier,trascript_queue,brai
                     for line in file:
                         cache_json[counter]=(json.loads(line))
                         counter=counter+1
-                    file.close()
             except Exception as e:
-                print(e)
-                print("cache vuota")
+                print(f"Error reading cache: {e}")
             for i in range(len(cache_json)):
                 if(i<counter):
                     if(cache_json[i]["input"]==result):

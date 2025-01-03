@@ -10,9 +10,40 @@ from scipy.io import wavfile
 import json
 import serial
 import base64
+import multiprocessing
+import time
+import threading
+from playsound import playsound
+import keyboard
 
-arduino = serial.Serial(port='/dev/ttyUSB0', baudrate=115200, timeout=1) #LASCIA TIMEOUT A !
+arduino = None
 
+def set_timer(duration):
+    stop_event = threading.Event()
+    
+    def play_sound(stop_event):
+        try:
+            while not stop_event.is_set():
+                playsound("prova2.wav")
+                #print("playing")
+        except Exception as e:
+            print(f"Errore durante la riproduzione del suono: {e}")
+
+    print(f"Timer impostato per {duration} secondi.")
+    time.sleep(duration)
+    print("Timer scaduto!")
+
+    sound_thread = threading.Thread(target=play_sound, args=(stop_event,), daemon=True)
+    sound_thread.start()
+
+    print("Premi 'a' per fermare il suono.")
+    while not stop_event.is_set():
+        if keyboard.is_pressed("a"):
+            print("Interrompo il suono...")
+            stop_event.set()
+            break
+
+    
 r = sr.Recognizer() # Crea una istanza del recognizer
 
 ACCESS_KEY="zvo3gDplLoZ2lxzG31HCdEdqoNemPth79NuTZqA5LpU6DteiwTlNXg=="
@@ -31,19 +62,29 @@ def send_wav_file_and_get_response(data,is_echo):
     print("sending")
     data = base64.b64encode(data).decode('utf-8')
     json_data=json.dumps({"is_echo":is_echo,"data":data})
-    ws=websocket.create_connection(websocket_url)
-    ws.send(json_data)
-    response= ws.recv()
-    if(response!=""):
-        print(response)
-    else:
-        print("empty")
-    return response
+    try:
+        ws = websocket.create_connection(websocket_url)
+        ws.send(json_data)
+        response = ws.recv()
+        if (response != ""):
+            print(response)
+        else:
+            print("empty")
+        return response
+    except websocket.WebSocketException as e:
+        print(f"WebSocket connection error: {e}")
+        return None
 
 
 
 
 def main():
+    """
+    Main function to initialize and run the voice assistant.
+    Parses command-line arguments, sets up the Porcupine wake word engine,
+    and listens for wake words and commands.
+    """
+    
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -82,12 +123,16 @@ def main():
         default=None)
 
     parser.add_argument('--audio_device_index', help='Index of input audio device.', type=int, default=-1)
+    parser.add_argument('--serial_port', help='Serial port for Arduino.', default='/dev/ttyUSB0')
 
     parser.add_argument('--output_path', help='Absolute path to recorded audio for debugging.', default=None)
 
     parser.add_argument('--show_audio_devices', action='store_true')
 
     args = parser.parse_args()
+
+    global arduino
+    arduino = serial.Serial(port=args.serial_port, baudrate=115200, timeout=1) #LASCIA TIMEOUT A !
 
     if args.show_audio_devices:
         for i, device in enumerate(PvRecorder.get_available_devices()):
@@ -202,20 +247,30 @@ def main():
                 arduino.write(bytes("led_stop"+'\n','utf-8'))
                 result=json.loads(result)
                 print(result)
+                if(result["text"]=="shutdown"):
+                    os.system('sudo shutdown now')
+                if(result["text"]=="timer is set"):
+                    try:
+                        timer_duration = int(result["time"])
+                        proc = multiprocessing.Process(target=set_timer, args=(timer_duration,))
+                        proc.start()
+                    except (ValueError, KeyError) as e:
+                        print(f"Invalid timer value: {e}")
+                    
                 if(result["lan"]=="it"):
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/it_IT-riccardo-x_low.onnx --config piper/it_it_IT_riccardo_x_low_it_IT-riccardo-x_low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 else:
                     command=f'echo "{result["text"]}" |   ./piper/piper --model piper/en_US-kathleen-low.onnx --config piper/en_en_US_kathleen_low_en_US-kathleen-low.onnx.json --output-raw |   aplay -r 16000 -f S16_LE -t raw -'
                 os.system(command)
+            elif result >= 2:
+                print(f"Unexpected result from Porcupine process: {result}")
             else:
                 pass
     except KeyboardInterrupt:
         print('Stopping ...')
     finally:
         recorder.delete()
-        porcupine.delete()
-        
-
 
 if __name__ == '__main__':
     main()
+

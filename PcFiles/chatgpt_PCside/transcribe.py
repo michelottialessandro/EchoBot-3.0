@@ -1,7 +1,6 @@
 import time
 import whisper
 import torch
-import torch
 
 # print(whisper.available_models())
 

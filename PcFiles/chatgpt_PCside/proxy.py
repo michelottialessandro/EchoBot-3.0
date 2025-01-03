@@ -20,15 +20,17 @@ async def handle_audio(web_socket, path):
     print(type(data))
     print(data)
     await web_socket.send(data)
-    # response=json.loads(data)
-    # if(response["text"]=="shutdown"):
-    #     print(response)
-    #     await web_socket.send(data)
-    #     os.system("shutdown /s /t 1") 
-    # else:
-    #     print(response)
-    #     await web_socket.send(data)
-
+    try:
+        response=json.loads(data)
+        if(response["text"]=="shutdown"):
+            print(response)
+            await web_socket.send(data)
+            os.system("shutdown /s /t 1") 
+        else:
+            print(response)
+            await web_socket.send(data)
+    except Exception as e:
+        print(f"Error during shutdown: {e}")
 
 
 start_server = websockets.serve(handle_audio, server_address, server_port)
