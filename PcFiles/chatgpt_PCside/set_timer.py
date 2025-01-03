@@ -2,7 +2,7 @@ from word2number_en_ita import w2n
 import re
 ## il trhead che fa partire il tutto viene definito nel main.py per evitare di dover rimportare tutte le libreria 
 
-def extract_info(text,lan):
+def extract_info(text):
     numbers = re.findall(r'\d+', text)
     print(numbers)
     numbers = [int(num) for num in numbers]
