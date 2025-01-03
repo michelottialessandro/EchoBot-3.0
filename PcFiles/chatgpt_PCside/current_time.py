@@ -12,7 +12,6 @@ def get_time(lan):
         return (f"Sono le {formatted_time_italy}")
 
 def get_day(lan):
-    
     giorni=["lunedì", "martedì", "mercoledì","giovedì","venerdì","sabato","domenica"]
     
     days=["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
@@ -53,7 +52,6 @@ def get_day(lan):
         return (f"Oggi è {giorno_nome}, {giorno}  {mese_nome}, {anno}")
 
 
-def month_in_name(formatted_time):
-    print("ok")
+
 
 print(get_day("en"))
