@@ -1,8 +1,11 @@
 import websocket
 import json
-websocket_url = "ws://192.168.178.43/ws"
-ws_esp=websocket.create_connection(websocket_url)
 
+websocket_url = "ws://192.168.178.43/ws"
+try:
+    ws_esp=websocket.create_connection(websocket_url)
+except Exception as e:
+    print(f"Error during connection to esp: {e}")
 
 def lights_manager(is_on,text):
     if(is_on):
